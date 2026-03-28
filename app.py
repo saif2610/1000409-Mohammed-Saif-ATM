@@ -1,7 +1,7 @@
 """
 ATM INTELLIGENCE – AI POWERED DEMAND FORECASTING SYSTEM
 Created by: N Mohammed Saif
-Advanced Version with Forecasting + Anomaly Detection + Refill Optimization
+Final Professional Version (Stable + All Features)
 """
 
 # ===============================
@@ -10,51 +10,68 @@ Advanced Version with Forecasting + Anomaly Detection + Refill Optimization
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+
 from sklearn.ensemble import RandomForestRegressor, IsolationForest
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
-import warnings
 
+import warnings
 warnings.filterwarnings("ignore")
 
+print("🚀 Starting ATM Intelligence System...")
+
 # ===============================
-# LOAD DATASET
+# LOAD DATASET (SAFE)
 # ===============================
-df = pd.read_csv("atm_withdrawal_data.csv")
+try:
+    df = pd.read_csv("atm_withdrawal_data.csv")
+    print("✅ Dataset loaded successfully!")
+except Exception as e:
+    print("❌ ERROR: Dataset not found or invalid!")
+    print(e)
+    exit()
+
+# ===============================
+# BASIC CHECK
+# ===============================
+print("\n📌 Columns in Dataset:", df.columns)
+print(df.head())
 
 # ===============================
 # DATA PREPROCESSING
 # ===============================
+try:
+    df["Date"] = pd.to_datetime(df["Date"])
+except:
+    print("❌ 'Date' column missing or wrong format")
+    exit()
 
-# Convert Date column
-df["Date"] = pd.to_datetime(df["Date"])
-
-# Feature Extraction
+# Feature Engineering
 df["Year"] = df["Date"].dt.year
 df["Month"] = df["Date"].dt.month
 df["Day"] = df["Date"].dt.day
 df["Day_of_Week"] = df["Date"].dt.dayofweek
 df["Week_Number"] = df["Date"].dt.isocalendar().week.astype(int)
 
-# Weekend Feature
+# Extra Features
 df["Is_Weekend"] = df["Day_of_Week"].apply(lambda x: 1 if x >= 5 else 0)
-
-# Salary Day Feature
 df["Is_Salary_Day"] = df["Day"].apply(lambda x: 1 if x in [1, 30] else 0)
 
-# Handle Missing Values
+# Fill Missing Values
 df = df.ffill()
 
 # ===============================
-# ENCODING CATEGORICAL VARIABLES
+# ENCODING
 # ===============================
 label_cols = ["Location_Type", "Time_of_Day"]
 
 for col in label_cols:
-    le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
+    if col in df.columns:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+    else:
+        print(f"⚠ Column '{col}' missing")
 
 # ===============================
 # NORMALIZATION
@@ -63,11 +80,18 @@ scaler = MinMaxScaler()
 
 numeric_cols = ["Temperature", "Holiday_Flag"]
 
+for col in numeric_cols:
+    if col not in df.columns:
+        df[col] = 0
+
 df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
 
 # ===============================
-# MODEL TRAINING – DEMAND FORECAST
+# MODEL TRAINING
 # ===============================
+if "Withdrawals" not in df.columns:
+    print("❌ 'Withdrawals' column missing!")
+    exit()
 
 X = df.drop(columns=["Withdrawals", "Date"])
 y = df["Withdrawals"]
@@ -86,13 +110,12 @@ model.fit(X_train, y_train)
 predictions = model.predict(X_test)
 
 print("\n📊 MODEL PERFORMANCE")
-print("MAE:", mean_absolute_error(y_test, predictions))
-print("R2 Score:", r2_score(y_test, predictions))
+print("MAE:", round(mean_absolute_error(y_test, predictions), 2))
+print("R2 Score:", round(r2_score(y_test, predictions), 2))
 
 # ===============================
-# DEMAND SPIKE DETECTION
+# ANOMALY DETECTION
 # ===============================
-
 iso_model = IsolationForest(
     contamination=0.05,
     random_state=42
@@ -106,15 +129,14 @@ df["Demand_Spike"] = df["Anomaly"].apply(
     lambda x: 1 if x == -1 else 0
 )
 
-print("\n🚨 Total Demand Spikes Detected:", df["Demand_Spike"].sum())
+print("\n🚨 Demand Spikes Detected:", df["Demand_Spike"].sum())
 
 # ===============================
-# SMART CASH REFILL RECOMMENDER
+# SMART REFILL SYSTEM
 # ===============================
-
 ATM_CAPACITY = 200000
 
-df["Predicted_Demand"] = model.predict(X[X_train.columns])
+df["Predicted_Demand"] = model.predict(X)
 
 df["Recommended_Refill"] = np.where(
     df["Predicted_Demand"] > ATM_CAPACITY * 0.8,
@@ -123,9 +145,20 @@ df["Recommended_Refill"] = np.where(
 )
 
 # ===============================
+# RISK ALERT SYSTEM
+# ===============================
+df["Cashout_Risk"] = np.where(
+    df["Predicted_Demand"] > ATM_CAPACITY,
+    "HIGH",
+    "SAFE"
+)
+
+print("\n⚠ HIGH RISK DAYS:")
+print(df[df["Cashout_Risk"] == "HIGH"][["Date", "Predicted_Demand"]])
+
+# ===============================
 # VISUALIZATION
 # ===============================
-
 plt.figure(figsize=(12,6))
 
 plt.plot(df["Date"], df["Withdrawals"], label="Actual Withdrawals")
@@ -136,17 +169,19 @@ plt.xlabel("Date")
 plt.ylabel("Withdrawals")
 
 plt.legend()
+plt.grid()
+
+plt.savefig("forecast.png")  # safer than show
 plt.show()
 
 # ===============================
-# RISK ALERT SYSTEM
+# SAVE OUTPUT FILE
 # ===============================
+df.to_csv("atm_results_output.csv", index=False)
 
-df["Cashout_Risk"] = np.where(
-    df["Predicted_Demand"] > ATM_CAPACITY,
-    "HIGH",
-    "SAFE"
-)
+print("\n💾 Results saved as 'atm_results_output.csv'")
+print("📈 Graph saved as 'forecast.png'")
 
-print("\n⚠ High Risk Days:")
-print(df[df["Cashout_Risk"] == "HIGH"][["Date", "Predicted_Demand"]])
+print("\n✅ SYSTEM COMPLETED SUCCESSFULLY!")
+
+input("\nPress Enter to exit...")
