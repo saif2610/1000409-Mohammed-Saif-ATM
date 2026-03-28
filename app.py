@@ -103,9 +103,14 @@ df_filtered = df[
     (df['Location_Type'].isin(selected_locations)) &
     (df['Day_of_Week'].isin(selected_days)) &
     (df['Time_of_Day'].isin(selected_times))
-]
+].copy()  # Use .copy() to avoid SettingWithCopyWarning
 
 st.sidebar.markdown(f"**Filtered Records:** {len(df_filtered)}")
+
+# Check if filtered data is empty
+if len(df_filtered) == 0:
+    st.warning("⚠️ No data matches the selected filters. Please adjust your selection.")
+    st.stop()
 
 # =====================================================
 # DATASET OVERVIEW
@@ -385,20 +390,23 @@ with col1:
 with col2:
     st.markdown("**Correlation Heatmap of Numeric Features**")
     
-    # Select numeric columns
-    numeric_cols = ['Total_Withdrawals', 'Total_Deposits', 'Holiday_Flag', 
+    # Select numeric columns that exist in the dataframe
+    available_numeric_cols = [col for col in ['Total_Withdrawals', 'Total_Deposits', 'Holiday_Flag', 
                     'Special_Event_Flag', 'Previous_Day_Cash_Level', 
-                    'Cash_Demand_Next_Day', 'Temperature']
+                    'Cash_Demand_Next_Day', 'Temperature'] if col in df_filtered.columns]
     
-    df_numeric = df_filtered[numeric_cols]
-    corr_matrix = df_numeric.corr()
-    
-    fig, ax = plt.subplots(figsize=(10, 8))
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, 
-                fmt='.2f', linewidths=0.5, ax=ax)
-    ax.set_title('Correlation Heatmap of Numeric Features', fontsize=12)
-    st.pyplot(fig)
-    st.info("**Observation:** Strong correlations help identify key predictors for demand forecasting.")
+    if len(available_numeric_cols) >= 2 and len(df_filtered) > 0:
+        df_numeric = df_filtered[available_numeric_cols]
+        corr_matrix = df_numeric.corr()
+        
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, 
+                    fmt='.2f', linewidths=0.5, ax=ax)
+        ax.set_title('Correlation Heatmap of Numeric Features', fontsize=12)
+        st.pyplot(fig)
+        st.info("**Observation:** Strong correlations help identify key predictors for demand forecasting.")
+    else:
+        st.warning("Not enough data or columns available for correlation analysis. Please adjust filters.")
 
 st.markdown("---")
 
