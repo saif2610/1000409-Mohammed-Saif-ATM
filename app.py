@@ -24,7 +24,7 @@ st.markdown("AI Powered Demand Forecasting + Refill Optimization")
 # ===============================
 # PRESET DATA FILE PATH
 # ===============================
-DATA_FILE = "atm_data.csv"
+DATA_FILE = "atm_cash_management_dataset."
 
 # Check if data file exists
 if not os.path.exists(DATA_FILE):
@@ -36,7 +36,7 @@ st.success(f"✅ Using preset data file: **{DATA_FILE}**")
 # ===============================
 # LOAD DATA
 # ===============================
-df = pd.read_csv(DATA_FILE)
+df = pd.read_(DATA_FILE)
 
 st.subheader("📊 Dataset Preview")
 st.write(f"**Total Records:** {len(df)}")
@@ -248,10 +248,10 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.download_button(
-        label="📄 Download Full Results (CSV)",
-        data=df.to_csv(index=False),
-        file_name="atm_results.csv",
-        mime="text/csv"
+        label="📄 Download Full Results ()",
+        data=df.to_(index=False),
+        file_name="atm_results.",
+        mime="text/"
     )
 
 with col2:
